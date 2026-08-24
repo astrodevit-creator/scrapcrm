@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ScrapCRM</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#e6edf3;--dim:#8b949e;--accent:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;--purple:#bc8cff}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+body{background:var(--bg);color:var(--text);font-size:14px}
+header{display:flex;align-items:center;gap:16px;padding:12px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:10}
+header h1{font-size:18px;font-weight:600}
+header .stats{display:flex;gap:18px;margin-left:auto;font-size:12px;color:var(--dim)}
+header .stats b{color:var(--text)}
+.tabs{display:flex;gap:4px}
+.tabs button{background:none;border:1px solid var(--border);color:var(--dim);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px}
+.tabs button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+main{padding:20px;max-width:1400px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.agent-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.agent-card h3{font-size:14px;display:flex;align-items:center;gap:8px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+.agent-card .desc{font-size:12px;color:var(--dim)}
+.feed{height:130px;overflow-y:auto;background:#0a0d12;border-radius:6px;padding:8px;font-size:11.5px;font-family:Consolas,monospace;line-height:1.55}
+.feed .ev{margin-bottom:2px}.feed .t{color:var(--dim);margin-right:6px}
+.lvl-success{color:var(--green)}.lvl-warn{color:var(--yellow)}.lvl-error{color:var(--red)}.lvl-info{color:var(--accent)}
+.toolbar{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+input,select{background:#0a0d12;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px}
+.btn{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px}
+.btn.gray{background:var(--border)}
+table{width:100%;border-collapse:collapse;background:var(--card);border-radius:10px;overflow:hidden}
+th{font-size:11px;text-transform:uppercase;color:var(--dim);text-align:left;padding:10px;border-bottom:1px solid var(--border)}
+td{padding:9px 10px;border-bottom:1px solid #21262d;font-size:13px;vertical-align:top}
+tr:hover td{background:#1c2129}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.b-valid,.b-qualified{background:#12351c;color:var(--green)}
+.b-risky,.b-audited,.b-enriched{background:#33270a;color:var(--yellow)}
+.b-dead,.b-new{background:#38141566;color:var(--red)}
+.b-contacted{background:#1f2937;color:var(--accent)}
+.score-bar{height:5px;border-radius:3px;background:var(--border);width:60px;display:inline-block;vertical-align:middle;margin-right:6px}
+.score-fill{height:100%;border-radius:3px}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:20;justify-content:center;align-items:center}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:22px;width:min(720px,92vw);max-height:85vh;overflow-y:auto}
+.modal h2{font-size:17px;margin-bottom:12px}
+.kv{display:grid;grid-template-columns:170px 1fr;gap:5px 12px;font-size:13px;margin-bottom:14px}
+.kv .k{color:var(--dim)}
+.sec-title{font-size:12px;text-transform:uppercase;color:var(--dim);margin:14px 0 6px;border-top:1px solid var(--border);padding-top:12px}
+.empty{color:var(--dim);text-align:center;padding:40px}
+textarea{width:100%;min-height:70px;background:#0a0d12;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px;font-size:13px}
+.row-actions{display:flex;gap:6px}
+.chip{cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <h1>🕷️ ScrapCRM</h1>
+  <div class="tabs">
+    <button id="tab-agents" class="active" onclick="showTab('agents')">Agents & Events</button>
+    <button id="tab-leads" onclick="showTab('leads')">Prospects / Leads</button>
+    <button id="tab-lessons" onclick="showTab('lessons')">Lessons (Self-Learning)</button>
+  </div>
+  <div class="stats">
+    <span>Leads <b id="st-leads">0</b></span>
+    <span>Valid emails <b id="st-emails">0</b></span>
+    <span>Avg SEO <b id="st-seo">–</b></span>
+    <span>Opportunities <b id="st-opp">0</b></span>
+    <span>Lessons <b id="st-less">0</b></span>
+    <button class="btn gray" onclick="location.href='/api/export.csv'">Export CSV</button>
+  </div>
+</header>
+
+<main>
+  <!-- AGENTS -->
+  <section id="sec-agents">
+    <div class="toolbar">
+      <input id="seed-url" placeholder="Add URL to scrape (https://example.com)" style="flex:1;max-width:480px">
+      <button class="btn" onclick="addSeed()">Scrape URL</button>
+      <input id="lead-name" placeholder="Lead name" style="max-width:160px">
+      <input id="lead-site" placeholder="website" style="max-width:200px">
+      <input id="lead-email" placeholder="email" style="max-width:200px">
+      <button class="btn gray" onclick="addLead()">+ Add Lead</button>
+    </div>
+    <div class="grid" id="agents"></div>
+    <h3 style="margin:20px 0 8px;font-size:13px;color:var(--dim)">LIVE EVENT STREAM — ALL AGENTS → CEO</h3>
+    <div class="feed" id="all-feed" style="height:220px"></div>
+  </section>
+
+  <!-- LEADS -->
+  <section id="sec-leads" style="display:none">
+    <div class="toolbar">
+      <input id="lead-q" placeholder="Search…" oninput="loadLeads()" style="max-width:260px">
+      <select id="lead-stage" onchange="loadLeads()">
+        <option value="">All stages</option>
+        <option>new</option><option>audited</option><option>enriched</option><option>qualified</option><option>contacted</option><option>dead</option>
+      </select>
+    </div>
+    <table><thead><tr>
+      <th>Score</th><th>Lead</th><th>Email</th><th>SEO</th><th>Social/Ads</th><th>Google</th><th>Stage</th><th></th>
+    </tr></thead><tbody id="leads-body"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody></table>
+  </section>
+
+  <!-- LESSONS -->
+  <section id="sec-lessons" style="display:none">
+    <p style="color:var(--dim);font-size:12px;margin-bottom:12px">Every agent mistake becomes a lesson. Agents load their lessons before each run and adapt behavior. Hit count = times applied.</p>
+    <table><thead><tr><th>Agent</th><th>Pattern</th><th>Correction</th><th>Hits</th></tr></thead>
+    <tbody id="lessons-body"><tr><td colspan="4" class="empty">No lessons yet — they appear when agents hit problems.</td></tr></tbody></table>
+  </section>
+</main>
+
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+let tab='agents';
+function showTab(t){tab=t;
+ for(const s of ['agents','leads','lessons'])document.getElementById('sec-'+s).style.display=s===t?'':'none';
+ document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+ document.getElementById('tab-'+t).classList.add('active');
+ if(t==='leads')loadLeads(); if(t==='lessons')loadLessons();
+}
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function j(url){return (await fetch(url)).json()}
+
+async function loadStats(){
+ const s=await j('/api/stats');
+ document.getElementById('st-leads').textContent=s.leads;
+}
+// use bracket-safe stat updates
+async function stats(){
+ const s=await j('/api/stats');
+ document.getElementById('st-leads').textContent=s.leads;
+ document.getElementById('st-emails').textContent=s.valid_emails;
+ document.getElementById('st-seo').textContent=s.avg_seo?Math.round(s.avg_seo):'–';
+ document.getElementById('st-opp').textContent=s.opportunities;
+ document.getElementById('st-less').textContent=s.lessons;
+}
+
+async function loadAgents(){
+ const agents=await j('/api/agents');
+ const el=document.getElementById('agents');
+ el.innerHTML=agents.map(a=>`
+  <div class="agent-card">
+   <h3><span class="dot"></span>${esc(a.name)} <span style="color:var(--dim);font-weight:400;font-size:11px">(${a.events} events)</span></h3>
+   <div class="desc">${esc(a.desc)}</div>
+   <div class="feed" id="feed-${a.id}"><div class="empty" style="padding:20px">waiting…</div></div>
+  </div>`).join('');
+}
+
+async function loadFeed(agentId){
+ const evs=await j('/api/events?limit=30'+(agentId&&agentId!=='all'?'&agent='+agentId:''));
+ const html=evs.map(e=>`<div class="ev lvl-${e.level}"><span class="t">${e.created_at.slice(11,19)}</span>[${esc(e.agent)}] ${esc(e.event)} ${esc(e.detail)}</div>`).join('');
+ const target=agentId==='all'?document.getElementById('all-feed'):document.getElementById('feed-'+agentId);
+ if(target&&target.dataset.sig!==html.length+'-'+(evs[0]?.id||0)){target.innerHTML=html||`<div class="empty" style="padding:12px;font-size:11px">running — next cycle soon (last: ${new Date().toLocaleTimeString().slice(0,5)})</div>`;target.dataset.sig=html.length+'-'+(evs[0]?.id||0);}
+}
+
+function scoreBar(v){
+ if(v==null)return '–';
+ const c=v>=70?'var(--green)':v>=40?'var(--yellow)':'var(--red)';
+ return `<span class="score-bar"><span class="score-fill" style="width:${v}%;background:${c}"></span></span>${v}`;
+}
+
+async function loadLeads(){
+ const q=document.getElementById('lead-q').value, stage=document.getElementById('lead-stage').value;
+ const leads=await j('/api/leads?q='+encodeURIComponent(q)+'&stage='+stage);
+ const b=document.getElementById('leads-body');
+ if(!leads.length){b.innerHTML='<tr><td colspan="8" class="empty">No leads yet. Scrape a URL or add a lead manually above.</td></tr>';return}
+ b.innerHTML=leads.map(l=>{
+  const socials=[l.has_facebook?'FB':null,l.has_instagram?'IG':null,l.has_linkedin?'LI':null,l.has_tiktok?'TT':null].filter(Boolean).join(' ')||'—';
+  const ads=l.running_ads===null||l.running_ads===undefined?'—':(l.running_ads?'running':'<span style="color:var(--green)">NO ADS ★</span>');
+  return `<tr>
+   <td>${scoreBar(l.score)}</td>
+   <td><a href="#" onclick="openLead(${l.id});return false">${esc(l.name||l.website)}</a><br><span style="color:var(--dim);font-size:11px">${esc(l.website||'')}</span></td>
+   <td>${l.email?`${esc(l.email)}<br><span class="badge b-${l.email_verdict}">${l.email_verdict}</span>`:'—'}</td>
+   <td>${scoreBar(l.seo_score)}</td>
+   <td>${socials}<br>${ads}</td>
+   <td>${l.google_rank?'#'+l.google_rank:'—'}${l.indexed_pages?`<br><span style="color:var(--dim);font-size:11px">${esc(l.indexed_pages)} idx</span>`:''}</td>
+   <td><span class="badge b-${l.stage} chip" onclick="cycleStage(${l.id},'${l.stage}')">${l.stage}</span></td>
+   <td><button class="btn gray" onclick="openLead(${l.id})">View</button></td>
+  </tr>`}).join('');
+}
+
+async function cycleStage(id,current){
+ const order=['new','audited','enriched','qualified','contacted'];
+ const next=order[Math.min(order.indexOf(current)+1,order.length-1)];
+ await fetch(`/api/leads/${id}/stage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({stage:next})});
+ loadLeads();
+}
+
+async function openLead(id){
+ const l=await j('/api/leads/'+id);
+ const audits=(l.site_audits||[]).map(a=>`reachable=${a.reachable?'yes':'NO'} status=${a.status_code||'-'} tech=${esc(a.tech||'?')} mobile=${a.mobile_friendly?'y':'n'} ssl=${a.has_ssl?'y':'n'} load=${a.load_hint_ms||'?'}ms`).join('<br>');
+ const checks=(l.email_checks||[]).map(c=>`${esc(c.email)}: syntax=${c.syntax_ok?'ok':'bad'} mx=${c.mx_ok?'ok':'none'} smtp=${c.smtp_ok!=null?(c.smtp_ok?'accepts':'rejects'):'n/a'} → <b>${c.verdict}</b>`).join('<br>');
+ document.getElementById('modal').innerHTML=`
+  <h2>${esc(l.name||'Lead')} <span class="badge b-${l.stage}">${l.stage}</span></h2>
+  <div class="kv">
+   <span class="k">Website</span><span>${l.website?`<a href="${esc(l.website)}" target="_blank">${esc(l.website)}</a>`:'—'}</span>
+   <span class="k">Email</span><span>${esc(l.email||'—')} <span class="badge b-${l.email_verdict}">${l.email_verdict}</span></span>
+   <span class="k">Phone</span><span>${esc(l.phone||'—')}</span>
+   <span class="k">Source / Niche</span><span>${esc(l.source||'')} / ${esc(l.niche||'—')}</span>
+   <span class="k">Opportunity score</span><span>${scoreBar(l.score)} / 100</span>
+   <span class="k">SEO score</span><span>${scoreBar(l.seo_score)}</span>
+   <span class="k">Social</span><span>FB:${l.has_facebook?'✓':'✗'} IG:${l.has_instagram?'✓':'✗'} LI:${l.has_linkedin?'✓':'✗'} TT:${l.has_tiktok?'✓':'✗'} · Ads: ${l.running_ads===null?'unknown':l.running_ads?'running':'not running ★ opportunity'}</span>
+   <span class="k">Google</span><span>${l.google_rank?'rank #'+l.google_rank:'not in top 20'} · indexed: ${esc(l.indexed_pages||'?')}</span>
+   <span class="k">Created</span><span>${esc(l.created_at)}</span>
+  </div>
+  <div class="sec-title">Site audits</div><div style="font-size:12px;font-family:monospace">${audits||'pending…'}</div>
+  <div class="sec-title">Email checks</div><div style="font-size:12px;font-family:monospace">${checks||'none yet'}</div>
+  <div class="sec-title">Notes</div>
+  <textarea id="lead-notes">${esc(l.notes||'')}</textarea>
+  <div style="display:flex;gap:8px;margin-top:10px">
+   <button class="btn" onclick="saveNotes(${id})">Save notes</button>
+   <button class="btn gray" onclick="closeModal()">Close</button>
+  </div>`;
+ document.getElementById('modal-bg').style.display='flex';
+}
+function closeModal(){document.getElementById('modal-bg').style.display='none'}
+async function saveNotes(id){
+ await fetch(`/api/leads/${id}/notes`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({notes:document.getElementById('lead-notes').value})});
+ closeModal();loadLeads();
+}
+
+async function addSeed(){
+ const url=document.getElementById('seed-url').value.trim();
+ if(!url)return alert('enter a URL');
+ await fetch('/api/scrape',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+ document.getElementById('seed-url').value='';
+}
+async function addLead(){
+ const name=document.getElementById('lead-name').value.trim(), website=document.getElementById('lead-site').value.trim(), email=document.getElementById('lead-email').value.trim();
+ if(!website&&!email)return alert('need website or email');
+ await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,website,email})});
+ ['lead-name','lead-site','lead-email'].forEach(i=>document.getElementById(i).value='');
+ showTab('leads');
+}
+
+async function loadLessons(){
+ const ls=await j('/api/lessons');
+ const b=document.getElementById('lessons-body');
+ b.innerHTML=ls.length?ls.map(l=>`<tr><td>${esc(l.agent)}</td><td>${esc(l.pattern)}</td><td>${esc(l.correction)}</td><td>${l.hits}</td></tr>`).join('')
+  :'<tr><td colspan="4" class="empty">No lessons yet.</td></tr>';
+}
+
+// polling loops
+loadAgents().then(()=>{loadFeed('all');for(const a of ['ceo','scraper','email-auditor','website-analyzer','seo-expert','social-ads','google-ranking','learning'])loadFeed(a)});
+setInterval(()=>{stats();if(tab==='agents'){loadFeed('all');document.querySelectorAll('.agent-card').forEach(()=>{});['ceo','scraper','email-auditor','website-analyzer','seo-expert','social-ads','google-ranking','learning'].forEach(loadFeed)}},3000);
+setInterval(()=>{if(tab==='leads')loadLeads()},8000);
+setInterval(()=>{if(tab==='agents')loadAgents()},30000);
+stats();
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+{
+  "name": "scrapcrm",
+  "version": "1.0.0",
+  "description": "Multi-agent scraping + CRM desktop app",
+  "main": "electron/main.js",
+  "author": "HuggeHub",
+  "scripts": {
+    "start": "electron .",
+    "dev": "node server.js",
+    "dist": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.huggehub.scrapcrm",
+    "productName": "ScrapCRM",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**",
+      "agents/**",
+      "ui/**",
+      "server.js",
+      "db.js",
+      "ceo.js",
+      "lessons.js",
+      "orchestrator.js",
+      "node_modules/**",
+      "!node_modules/.cache",
+      "node_sqlite3.node",
+      "electron_sqlite3.node"
+    ],
+    "win": {
+      "target": "nsis",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "ScrapCRM"
+    }
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "bindings": "^1.5.0",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  }
+}

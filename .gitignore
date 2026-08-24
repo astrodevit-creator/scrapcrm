@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist_electron/
+
+# Databases — NEVER commit the local SQLite DB
+*.db
+*.db-shm
+*.db-wal
+scrapcrm.db*
+
+# Native binaries (platform-specific, not source controlled)
+*.node
+
+# Secrets / local config
+.env
+.env.local
+
+# Logs / OS
+*.log
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
