@@ -122,4 +122,4 @@ MIT — see [LICENSE](LICENSE).
 
 - 🌐 Website: [huggehub.com](https://www.huggehub.com)
 - 💻 GitHub: [@astrodevit-creator](https://github.com/astrodevit-creator)
-- 🔗 LinkedIn: _(add your profile URL)_
+- 🔗 LinkedIn: [El Badaoui Hatim](https://www.linkedin.com/in/el-badaoui-hatim-it)
